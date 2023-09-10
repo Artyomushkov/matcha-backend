@@ -1,5 +1,4 @@
-from datetime import date
-import functools
+import time
 from passlib.hash import sha256_crypt
 
 from flask import (
@@ -9,11 +8,12 @@ from Matcha.lib_db.insert import insert_query
 from Matcha.lib_db.select import select_query
 from Matcha.lib_db.update import update_query
 from Matcha.profile import bp
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from Matcha.db import get_db
 import uuid
 import psycopg2.extras
+from Matcha.profile.exceptions import NotFoundError
+from Matcha.profile.profile_utils import ProfileType, find_profile_by_id
 from Matcha.profile.short_profile_entity import ShortProfile
 
 from Matcha.utils.utils import is_valid_uuid
@@ -55,20 +55,17 @@ def register():
 def find_by_id(id):
     if not is_valid_uuid(id):
         return "Wrong id format", 400
-    fields_needed = "id, firstName, lastName"
-    condition_args = dict()
-    condition_args['id'] = id
     try:
-        profile = select_query(TABLE_NAME, fields_needed, condition_args)
+        profile = find_profile_by_id(id, ProfileType.USUAL)
+    except NotFoundError as err:
+        return str(err), 400
     except Exception as err:
         return "Database query failed", 500
-    if not profile:
-        return "There is no user with such id", 400
-    return jsonify(ShortProfile(profile[0]).__dict__), 200
+    return jsonify(profile.__dict__), 200
 
 @bp.route('/login', methods=['POST'])
 def login():
-    fields_needed = "id, firstName, lastName, password"
+    fields_needed = "id, firstName, lastName, mainImage, isOnline, lastSeen, password"
     condition_args = dict()
     try:
         condition_args['username'] = request.json['username']
@@ -81,14 +78,13 @@ def login():
     if not profile:
         return "There is no user with such username", 400
     try:
-        if sha256_crypt.verify(request.json['password'], profile[0][3]):
+        if sha256_crypt.verify(request.json['password'], profile[0][6]):
             return jsonify(ShortProfile(profile[0]).__dict__), 200
         else:
             return "Password is wrong", 401
     except Exception as err:
         return "There is no password in request body", 400
 
-"""isOnline need to set to true and lastSeen at the current moment"""
 @bp.route('/edit', methods = ['PUT'])
 def edit():
     if request.json.keys() < {'id', 'gender', 'sexPref', 'dateOfBirth', 'biography', 'tagList', 'mainImage', 'location'}:
@@ -121,23 +117,37 @@ def edit():
     except Exception as err:
         return "There is no gender or sex pref in request", 400
     condition_args = dict()
+    request.json['isOnline'] = True
+    request.json['lastSeen'] = int(time.time())
     try:
-        person_req = find_by_id(request.json['id'])
-        if person_req[1] == 400:
-            raise TypeError(person_req[0])
-        if person_req[1] == 500:
-            raise Exception(person_req[0])
+        person_req = find_profile_by_id(request.json['id'], ProfileType.SHORT)
         condition_args['id'] = request.json['id']
         request.json.pop('id')
-    except TypeError as err:
+    except NotFoundError as err:
         return str(err), 400
     except Exception as err:
-        return "Id processing failed", 500
+        return str(err), 500
     try:
         update_query(TABLE_NAME, request.json, condition_args)
     except Exception as err:
         return "Database query failed", 500
-    return jsonify({'id' : condition_args['id']}), 201
+    fullProfile = find_profile_by_id(condition_args['id'], ProfileType.FULL)
+    return jsonify(fullProfile.__dict__), 201
+
+@bp.route('/me', methods=['GET'])
+def find_me():
+    id = request.args.get('id')
+    if id == None:
+        return "There is no id provided", 400
+    if not is_valid_uuid(id):
+        return "Id is invalid", 400
+    try:
+        profile = find_profile_by_id(id, ProfileType.FULL)
+    except NotFoundError as err:
+        return str(err), 400
+    except Exception as err:
+        return str(err), 500
+    return jsonify(profile.__dict__), 200
           
 @bp.route('/all', methods=['GET'])
 def show():
