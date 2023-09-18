@@ -1,10 +1,13 @@
 from enum import Enum
+from flask import current_app
+
+from itsdangerous import URLSafeTimedSerializer
 from Matcha.lib_db.select import select_query
 from Matcha.profile.exceptions import NotFoundError
 from Matcha.profile.full_profile_entity import FullProfile
 from Matcha.profile.profile_entity import Profile
 from Matcha.profile.short_profile_entity import ShortProfile
-
+from flask_mail import Message
 
 
 TABLE_NAME = 'profile'
@@ -38,3 +41,17 @@ def find_profile_by_id(id, profileType: ProfileType):
       return Profile(profile[0])
     case ProfileType.FULL:
       return FullProfile(profile[0])
+
+def generate_token(email):
+  serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+  return serializer.dumps(email, salt=current_app.config["SECURITY_PASSWORD_SALT"])
+
+def confirm_token(token, expiration=3600):
+  serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+  try:
+    email = serializer.loads(
+      token, salt=current_app.config["SECURITY_PASSWORD_SALT"], max_age=expiration
+    )
+    return email
+  except Exception:
+    return False

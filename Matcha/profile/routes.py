@@ -7,20 +7,20 @@ from flask import (
 from Matcha.lib_db.insert import insert_query
 from Matcha.lib_db.select import select_query
 from Matcha.lib_db.update import update_query
+from Matcha.mail_utils import send_email
 from Matcha.profile import bp
 
 from Matcha.db import get_db
 import uuid
 import psycopg2.extras
 from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.profile_utils import ProfileType, find_profile_by_id
+from Matcha.profile.profile_utils import ProfileType, confirm_token, find_profile_by_id, generate_token
 from Matcha.profile.short_profile_entity import ShortProfile
 
 from Matcha.utils.utils import is_valid_uuid
 
 TABLE_NAME = 'profile'
 
-"""need to make fame rating zero"""
 @bp.route('/register', methods=['POST'])
 def register():
     """need to send mail to verify registration"""
@@ -33,6 +33,7 @@ def register():
     request.json['id'] = id
     request.json['emailVerified'] = False
     request.json['password'] = sha256_crypt.encrypt(password)
+    request.json['fameRating'] = 0
     try:
         insert_query(TABLE_NAME, request.json)
     except psycopg2.errors.NotNullViolation:
@@ -49,6 +50,16 @@ def register():
         return "One of the fields is too long (more than 50 symbols)", 400
     except Exception as err:
         return "Database query failed", 500
+    token = generate_token(request.json['email'])
+    confirm_url = url_for("profile.confirm_email", token=token, _external=True)
+    html = render_template("confirm_email.html", confirm_url=confirm_url)
+    subject = "Please confirm your email"
+    try:
+        send_email(request.json['email'], subject, html)
+    except Exception as err:
+        print(err)
+        """Maybe need to delete user from db"""
+        return "Email sending failed", 500
     return jsonify({'id': id}), 201
 
 @bp.route('/id/<id>', methods = ['GET'])
@@ -148,6 +159,24 @@ def find_me():
     except Exception as err:
         return str(err), 500
     return jsonify(profile.__dict__), 200
+
+@bp.route("/confirm/<token>")
+def confirm_email(token):
+    email = confirm_token(token)
+    fields_needed = "id"
+    condition_args = dict()
+    condition_args['email'] = email
+    try:
+        id = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not id:
+        return "There is no user with such email", 400
+    try:
+        update_query(TABLE_NAME, {'emailVerified': True}, {'id': id[0][0]})
+    except Exception as err:
+        return "Database query failed", 500
+    return "Email confirmed", 200
           
 @bp.route('/all', methods=['GET'])
 def show():
