@@ -14,7 +14,7 @@ from Matcha.db import get_db
 import uuid
 import psycopg2.extras
 from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.profile_utils import ProfileType, confirm_token, find_profile_by_id, generate_token
+from Matcha.profile.profile_utils import ProfileType, confirm_email_send, confirm_token, find_profile_by_id, generate_token, send_reset_password
 from Matcha.profile.short_profile_entity import ShortProfile
 
 from Matcha.utils.utils import is_valid_uuid
@@ -23,16 +23,13 @@ TABLE_NAME = 'profile'
 
 @bp.route('/register', methods=['POST'])
 def register():
-    """need to send mail to verify registration"""
+    if request.json.keys() < {'username', 'password', 'firstName', 'lastName', 'email'}:
+        return "Not all necessary fields are in the request", 400
     psycopg2.extras.register_uuid()
-    try:
-        password = request.json['password']
-    except:
-        return "Password is missing", 400
     id = uuid.uuid4()
     request.json['id'] = id
     request.json['emailVerified'] = False
-    request.json['password'] = sha256_crypt.encrypt(password)
+    request.json['password'] = sha256_crypt.encrypt(request.json['password'])
     request.json['fameRating'] = 0
     try:
         insert_query(TABLE_NAME, request.json)
@@ -50,15 +47,9 @@ def register():
         return "One of the fields is too long (more than 50 symbols)", 400
     except Exception as err:
         return "Database query failed", 500
-    token = generate_token(request.json['email'])
-    confirm_url = url_for("profile.confirm_email", token=token, _external=True)
-    html = render_template("confirm_email.html", confirm_url=confirm_url)
-    subject = "Please confirm your email"
     try:
-        send_email(request.json['email'], subject, html)
+        confirm_email_send(request.json['email'])
     except Exception as err:
-        print(err)
-        """Maybe need to delete user from db"""
         return "Email sending failed", 500
     return jsonify({'id': id}), 201
 
@@ -161,8 +152,10 @@ def find_me():
     return jsonify(profile.__dict__), 200
 
 @bp.route("/confirm/<token>")
-def confirm_email(token):
+def confirm(token):
     email = confirm_token(token)
+    if not email:
+        return "The confirmation link is invalid or has expired", 400
     fields_needed = "id"
     condition_args = dict()
     condition_args['email'] = email
@@ -177,7 +170,134 @@ def confirm_email(token):
     except Exception as err:
         return "Database query failed", 500
     return "Email confirmed", 200
-          
+
+@bp.route('/mailReset/<token>/<id>', methods=['GET'])
+def mail_reset(token, id):
+    email = confirm_token(token)
+    if not email:
+        return "The confirmation link is invalid or has expired", 400
+    fields_needed = "id"
+    condition_args = dict()
+    condition_args['email'] = email
+    try:
+        id = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not id:
+        return "There is no user with such username", 400
+    try:
+        update_query(TABLE_NAME, {'password': None}, {'id': id[0][0]})
+    except Exception as err:
+        return "Database query failed", 500
+    return "Password reset", 200
+
+@bp.route('/editMail', methods=['POST'])
+def edit_mail():
+    if request.json.keys() < {'id', 'email'}:
+        return "Not all necessary fields are in the request", 400
+    if not is_valid_uuid(request.json['id']):
+        return "Id is invalid", 400
+    try:
+        id_check = find_profile_by_id(request.json['id'], ProfileType.SHORT)
+    except NotFoundError as err:
+        return str(err), 400
+    except Exception as err:
+        return str(err), 500
+    try:
+        update_query(TABLE_NAME, {'email': request.json['email'], 'emailVerified': False}, 
+                     {'id': request.json['id']})
+    except psycopg2.errors.UniqueViolation as err:
+        return "Profile with this email already exists", 400
+    except Exception as err:
+        return "Database query failed", 500
+    try:
+        confirm_email_send(request.json['email'])
+    except Exception as err:
+        return "Email sending failed", 500
+    return jsonify({'id': request.json['id']}), 200
+
+@bp.route('/resendMail', methods=['GET'])
+def resend_mail():
+    id = request.args.get('id')
+    if id == None:
+        return "There is no id provided", 400
+    if not is_valid_uuid(id):
+        return "Id is invalid", 400
+    fields_needed = "email, emailVerified"
+    condition_args = dict()
+    condition_args['id'] = id
+    try:
+        data = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not data:   
+        return "There is no user with such id", 400
+    if data[0][1] == True:
+        return "Email is already verified", 400
+    try:
+        confirm_email_send(data[0][0])
+    except Exception as err:
+        return "Email sending failed", 500
+    return jsonify({'id': id}), 200
+
+@bp.route('/changeUsername', methods=['PUT'])
+def change_username():
+    if request.json.keys() < {'id', 'username'}:
+        return "Not all necessary fields are in the request", 400
+    if not is_valid_uuid(request.json['id']):
+        return "Id is invalid", 400
+    try:
+        id_check = find_profile_by_id(request.json['id'], ProfileType.SHORT)
+    except NotFoundError as err:
+        return str(err), 400
+    except Exception as err:
+        return str(err), 500
+    try:
+        update_query(TABLE_NAME, {'username': request.json['username']}, {'id': request.json['id']})
+    except psycopg2.errors.UniqueViolation as err:
+        return "Profile with this username already exists", 400
+    except Exception as err:
+        return "Database query failed", 500
+    return jsonify({'id': request.json['id']}), 200
+
+@bp.route('/resetPassword', methods=['POST'])
+def reset_password():
+    if request.json.keys() < {'username'}:
+        return "Not all necessary fields are in the request", 400
+    fields_needed = "email, id"
+    condition_args = dict()
+    condition_args['username'] = request.json['username']
+    try:
+        data = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not data:
+        return "There is no user with such username", 400
+    try:
+        send_reset_password(data[0][0], data[0][1])
+    except Exception as err:
+        return "Email sending failed", 500
+    return jsonify({'id': data[0][1]}), 200
+
+@bp.route('/updatePassword', methods=['POST'])
+def update_password():
+    if request.json.keys() < {'id', 'password'}:
+        return "Not all necessary fields are in the request", 400
+    if not is_valid_uuid(request.json['id']):
+        return "Id is invalid", 400
+    try:
+        id_check = find_profile_by_id(request.json['id'], ProfileType.SHORT)
+    except NotFoundError as err:
+        return str(err), 400
+    except Exception as err:
+        return str(err), 500
+    try:
+        update_query(TABLE_NAME, {'password': sha256_crypt.encrypt(request.json['password'])}, 
+                     {'id': request.json['id']})
+    except Exception as err:
+        return "Database query failed", 500
+    return jsonify({'id': request.json['id']}), 200
+    
 @bp.route('/all', methods=['GET'])
 def show():
     db = get_db()

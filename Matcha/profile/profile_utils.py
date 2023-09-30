@@ -1,8 +1,9 @@
 from enum import Enum
-from flask import current_app
+from flask import current_app, render_template, url_for
 
 from itsdangerous import URLSafeTimedSerializer
 from Matcha.lib_db.select import select_query
+from Matcha.mail_utils import send_email
 from Matcha.profile.exceptions import NotFoundError
 from Matcha.profile.full_profile_entity import FullProfile
 from Matcha.profile.profile_entity import Profile
@@ -42,16 +43,30 @@ def find_profile_by_id(id, profileType: ProfileType):
     case ProfileType.FULL:
       return FullProfile(profile[0])
 
-def generate_token(email):
+def generate_token(data):
   serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-  return serializer.dumps(email, salt=current_app.config["SECURITY_PASSWORD_SALT"])
+  return serializer.dumps(data, salt=current_app.config["SECURITY_PASSWORD_SALT"])
 
 def confirm_token(token, expiration=3600):
   serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
   try:
-    email = serializer.loads(
+    data = serializer.loads(
       token, salt=current_app.config["SECURITY_PASSWORD_SALT"], max_age=expiration
     )
-    return email
+    return data
   except Exception:
     return False
+  
+def confirm_email_send(email):
+  token = generate_token(email)
+  confirm_url = url_for("profile.confirm", token=token, _external=True)
+  html = render_template("confirm_email.html", confirm_url=confirm_url)
+  subject = "Please confirm your email"
+  send_email(email, subject, html)
+
+def send_reset_password(email, id):
+  token = generate_token(email)
+  reset_url = url_for("profile.mail_reset", token=token, id=id, _external=True)
+  html = render_template("reset_password.html", reset_url=reset_url)
+  subject = "Reset your password"
+  send_email(email, subject, html)
