@@ -14,3 +14,5 @@ class Profile:
     self.isOnline = data[12]
     self.lastSeen = data[13]
     self.fameRating = data[14]
+    self.viewedMe = data[15]
+    self.likedMe = data[16]

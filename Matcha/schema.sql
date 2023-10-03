@@ -21,5 +21,6 @@ CREATE TABLE IF NOT EXISTS profile (
     viewedMe TEXT[],
     liked TEXT[],
     viewed TEXT[],
+    blacklist TEXT[],
     fameRating DOUBLE PRECISION
 );

@@ -55,14 +55,39 @@ def register():
 
 @bp.route('/id/<id>', methods = ['GET'])
 def find_by_id(id):
+    user_id = request.args.get('user')
+    if user_id == None:
+        return "There is no user id provided", 400
+    if not is_valid_uuid(user_id):
+        return "Wrong user id format", 400
     if not is_valid_uuid(id):
         return "Wrong id format", 400
+    fields_needed = "viewed"
+    condition_args = dict()
+    condition_args['id'] = user_id
+    try:
+        viewed = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not viewed:
+        return "There is no user with such id", 400
     try:
         profile = find_profile_by_id(id, ProfileType.USUAL)
     except NotFoundError as err:
         return str(err), 400
     except Exception as err:
         return "Database query failed", 500
+    if id not in viewed[0][0]:
+        try:
+            update_query(TABLE_NAME, {'viewed': viewed[0][0] + [id]}, {'id': user_id})
+        except Exception as err:
+            return "Database query failed", 500
+    if user_id not in profile.viewedMe:
+        try:
+            update_query(TABLE_NAME, {'viewedMe': profile.viewedMe + [user_id]}, {'id': id})
+        except Exception as err:
+            return "Database query failed", 500
+        profile.viewedMe.append(user_id)
     return jsonify(profile.__dict__), 200
 
 @bp.route('/login', methods=['POST'])
@@ -297,19 +322,62 @@ def update_password():
     except Exception as err:
         return "Database query failed", 500
     return jsonify({'id': request.json['id']}), 200
-    
-@bp.route('/all', methods=['GET'])
-def show():
-    db = get_db()
-    error = None
+
+@bp.route('/checkUsername', methods=['GET'])
+def check_username():
+    username = request.args.get('username')
+    if username == None:
+        return "There is no username provided", 400
+    fields_needed = "id"
+    condition_args = dict()
+    condition_args['username'] = username
     try:
-        with db.cursor() as cur:
-            cur.execute("""
-            SELECT * FROM profile;
-            """,)
-            profiles = cur.fetchall()
-    except:
-        error = "smth wrong with db"
-    if error != None:
-        return jsonify(error)
-    return jsonify(profiles)
+        data = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if data:
+        return jsonify({"exists": True}), 200
+    return jsonify({"exists": False}), 200
+
+"Need to fix checking of necessary fields"
+@bp.route('/like', methods=['PUT'])
+def like():
+    if request.json.keys() < {'likerId', 'wasLikedId'}:
+        return "Not all necessary fields are in the request", 400
+    if not is_valid_uuid(request.json['likerId']):
+        return "LikerId is invalid", 400
+    if not is_valid_uuid(request.json['wasLikedId']):
+        return "WasLikedId is invalid", 400
+    if request.json['likerId'] == request.json['wasLikedId']:
+        return "You can't like yourself", 400
+    fields_needed = "liked"
+    condition_args = dict()
+    condition_args['id'] = request.json['likerId']
+    try:
+        liked = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not liked:
+        return "There is no user with likerId", 400
+    fields_needed = "likedMe"
+    condition_args = dict()
+    condition_args['id'] = request.json['wasLikedId']
+    try:
+        likedMe = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not likedMe:
+        return "There is no user with wasLikedId", 400
+    if request.json['wasLikedId'] not in liked[0][0]:
+        try:
+            update_query(TABLE_NAME, {'liked': liked[0][0] + [request.json['wasLikedId']]}, {'id': request.json['likerId']})
+        except Exception as err:
+            return "Database query failed", 500
+    else:
+        return "The user is already liked", 400
+    if request.json['likerId'] not in likedMe[0][0]:
+        try:
+            update_query(TABLE_NAME, {'likedMe': likedMe[0][0] + [request.json['likerId']]}, {'id': request.json['wasLikedId']})
+        except Exception as err:
+            return "Database query failed", 500
+    return jsonify({'id': request.json['likerId']}), 200

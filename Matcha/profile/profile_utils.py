@@ -25,7 +25,7 @@ def find_profile_by_id(id, profileType: ProfileType):
     case ProfileType.USUAL:
       fields_needed = """id, firstName, lastName, dateOfBirth, 
         gender, sexPref, biography, tagList, mainImage, pictures,
-        gpslat, gpslon, isOnline, lastSeen, fameRating"""      
+        gpslat, gpslon, isOnline, lastSeen, fameRating, viewedMe, likedMe"""      
     case ProfileType.FULL:
       fields_needed = """id, username, firstName, lastName, email, dateOfBirth, 
         emailVerified, gender, sexPref, biography, tagList, mainImage, pictures,
