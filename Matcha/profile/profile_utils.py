@@ -70,3 +70,8 @@ def send_reset_password(email, id):
   html = render_template("reset_password.html", reset_url=reset_url)
   subject = "Reset your password"
   send_email(email, subject, html)
+
+def check_post_fields(post_fields: dict, fields_needed: set):
+  if fields_needed.issubset(post_fields.keys()):
+    return True
+  return False

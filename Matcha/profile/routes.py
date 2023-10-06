@@ -14,7 +14,7 @@ from Matcha.db import get_db
 import uuid
 import psycopg2.extras
 from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.profile_utils import ProfileType, confirm_email_send, confirm_token, find_profile_by_id, generate_token, send_reset_password
+from Matcha.profile.profile_utils import ProfileType, confirm_email_send, confirm_token, find_profile_by_id, generate_token, send_reset_password, check_post_fields
 from Matcha.profile.short_profile_entity import ShortProfile
 
 from Matcha.utils.utils import is_valid_uuid
@@ -23,7 +23,7 @@ TABLE_NAME = 'profile'
 
 @bp.route('/register', methods=['POST'])
 def register():
-    if request.json.keys() < {'username', 'password', 'firstName', 'lastName', 'email'}:
+    if not check_post_fields(request.json, {'username', 'password', 'firstName', 'lastName', 'email'}):
         return "Not all necessary fields are in the request", 400
     psycopg2.extras.register_uuid()
     id = uuid.uuid4()
@@ -92,29 +92,25 @@ def find_by_id(id):
 
 @bp.route('/login', methods=['POST'])
 def login():
+    if not check_post_fields(request.json, {'username', 'password'}):
+        return "Not all necessary fields are in the request", 400
     fields_needed = "id, firstName, lastName, mainImage, isOnline, lastSeen, password"
     condition_args = dict()
-    try:
-        condition_args['username'] = request.json['username']
-    except Exception as err:
-        return "There is no username in request body", 400
+    condition_args['username'] = request.json['username']
     try:
         profile = select_query(TABLE_NAME, fields_needed, condition_args)
     except Exception as err:
         return "Database query failed", 500
     if not profile:
         return "There is no user with such username", 400
-    try:
-        if sha256_crypt.verify(request.json['password'], profile[0][6]):
-            return jsonify(ShortProfile(profile[0]).__dict__), 200
-        else:
-            return "Password is wrong", 401
-    except Exception as err:
-        return "There is no password in request body", 400
-
+    if sha256_crypt.verify(request.json['password'], profile[0][6]):
+        return jsonify(ShortProfile(profile[0]).__dict__), 200
+    else:
+        return "Password is wrong", 401
+    
 @bp.route('/edit', methods = ['PUT'])
 def edit():
-    if request.json.keys() < {'id', 'gender', 'sexPref', 'dateOfBirth', 'biography', 'tagList', 'mainImage', 'location'}:
+    if not check_post_fields(request.json, {'id', 'firstName', 'lastName', 'dateOfBirth', 'biography', 'tagList', 'mainImage', 'location'}):
         return "Not all necessary fields are in the request", 400
     if not isinstance(request.json['tagList'], list):
         return "TagList should be an array", 400
@@ -218,7 +214,7 @@ def mail_reset(token, id):
 
 @bp.route('/editMail', methods=['POST'])
 def edit_mail():
-    if request.json.keys() < {'id', 'email'}:
+    if not check_post_fields(request.json, {'id', 'email'}):    
         return "Not all necessary fields are in the request", 400
     if not is_valid_uuid(request.json['id']):
         return "Id is invalid", 400
@@ -267,7 +263,7 @@ def resend_mail():
 
 @bp.route('/changeUsername', methods=['PUT'])
 def change_username():
-    if request.json.keys() < {'id', 'username'}:
+    if not check_post_fields(request.json, {'id', 'username'}):
         return "Not all necessary fields are in the request", 400
     if not is_valid_uuid(request.json['id']):
         return "Id is invalid", 400
@@ -287,7 +283,7 @@ def change_username():
 
 @bp.route('/resetPassword', methods=['POST'])
 def reset_password():
-    if request.json.keys() < {'username'}:
+    if not check_post_fields(request.json, {'username'}):
         return "Not all necessary fields are in the request", 400
     fields_needed = "email, id"
     condition_args = dict()
@@ -306,7 +302,7 @@ def reset_password():
 
 @bp.route('/updatePassword', methods=['POST'])
 def update_password():
-    if request.json.keys() < {'id', 'password'}:
+    if not check_post_fields(request.json, {'id', 'password'}):
         return "Not all necessary fields are in the request", 400
     if not is_valid_uuid(request.json['id']):
         return "Id is invalid", 400
@@ -339,10 +335,9 @@ def check_username():
         return jsonify({"exists": True}), 200
     return jsonify({"exists": False}), 200
 
-"Need to fix checking of necessary fields"
 @bp.route('/like', methods=['PUT'])
 def like():
-    if request.json.keys() < {'likerId', 'wasLikedId'}:
+    if not check_post_fields(request.json, {'likerId', 'wasLikedId'}):
         return "Not all necessary fields are in the request", 400
     if not is_valid_uuid(request.json['likerId']):
         return "LikerId is invalid", 400
@@ -380,4 +375,74 @@ def like():
             update_query(TABLE_NAME, {'likedMe': likedMe[0][0] + [request.json['likerId']]}, {'id': request.json['wasLikedId']})
         except Exception as err:
             return "Database query failed", 500
-    return jsonify({'id': request.json['likerId']}), 200
+    return jsonify({'likerId': request.json['likerId']}), 200
+
+@bp.route('/unlike', methods=['PUT'])
+def unlike():
+    if not check_post_fields(request.json, {'likerId', 'wasLikedId'}):
+        return "Not all necessary fields are in the request", 400
+    if not is_valid_uuid(request.json['likerId']):
+        return "LikerId is invalid", 400
+    if not is_valid_uuid(request.json['wasLikedId']):
+        return "WasLikedId is invalid", 400
+    if request.json['likerId'] == request.json['wasLikedId']:
+        return "You can't unlike yourself", 400
+    fields_needed = "liked"
+    condition_args = dict()
+    condition_args['id'] = request.json['likerId']
+    try:
+        liked = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not liked:
+        return "There is no user with likerId", 400
+    fields_needed = "likedMe"
+    condition_args = dict()
+    condition_args['id'] = request.json['wasLikedId']
+    try:
+        likedMe = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not likedMe:
+        return "There is no user with wasLikedId", 400
+    if request.json['wasLikedId'] in liked[0][0]:
+        try:
+            liked[0][0].remove(request.json['wasLikedId'])
+            update_query(TABLE_NAME, { 'liked': liked[0][0] }, {'id': request.json['likerId']})
+        except Exception as err:
+            return "Database query failed", 500
+    else:
+        return "The user is not liked", 400
+    if request.json['likerId'] in likedMe[0][0]:
+        try:
+            likedMe[0][0].remove(request.json['likerId'])
+            update_query(TABLE_NAME, {'likedMe': likedMe[0][0]}, {'id': request.json['wasLikedId']})
+        except Exception as err:
+            return "Database query failed", 500
+    return jsonify({'likerId': request.json['likerId']}), 200
+
+@bp.route('/likedByMe', methods=['GET'])
+def get_liked_by_me():
+    id = request.args.get('id')
+    if id == None:
+        return "There is no id provided", 400
+    if not is_valid_uuid(id):
+        return "Id is invalid", 400
+    fields_needed = "liked"
+    condition_args = dict()
+    condition_args['id'] = id
+    try:
+        liked = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return "Database query failed", 500
+    if not liked:
+        return "There is no user with such id", 400
+    profileList = []
+    for liked_id in liked[0][0]:
+        try:
+            profileList.append(find_profile_by_id(liked_id, ProfileType.SHORT).__dict__)
+        except NotFoundError as err:
+            return str(err), 400
+        except Exception as err:
+            return str(err), 500
+    return jsonify(profileList), 200
