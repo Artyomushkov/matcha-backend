@@ -4,20 +4,20 @@ from passlib.hash import sha256_crypt
 from flask import (
     Response, current_app, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
-from Matcha.lib_db.insert import insert_query
-from Matcha.lib_db.select import select_query
-from Matcha.lib_db.update import update_query
-from Matcha.mail_utils import send_email
-from Matcha.profile import bp
+from lib_db.insert import insert_query
+from lib_db.select import select_query
+from lib_db.update import update_query
+from utils.mail_utils import send_email
+from profile import bp
 
-from Matcha.db import get_db
+from lib_db.db import get_db
 import uuid
 import psycopg2.extras
-from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.profile_utils import ProfileType, confirm_email_send, confirm_token, find_profile_by_id, generate_token, send_reset_password, check_post_fields
-from Matcha.profile.short_profile_entity import ShortProfile
+from profile.exceptions import NotFoundError
+from profile.profile_utils import ProfileType, confirm_email_send, confirm_token, find_profile_by_id, generate_token, send_reset_password, check_post_fields
+from profile.short_profile_entity import ShortProfile
 
-from Matcha.utils.utils import is_valid_uuid
+from utils.utils import is_valid_uuid
 
 TABLE_NAME = 'profile'
 

@@ -2,14 +2,12 @@ from enum import Enum
 from flask import current_app, render_template, url_for
 
 from itsdangerous import URLSafeTimedSerializer
-from Matcha.lib_db.select import select_query
-from Matcha.mail_utils import send_email
-from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.full_profile_entity import FullProfile
-from Matcha.profile.profile_entity import Profile
-from Matcha.profile.short_profile_entity import ShortProfile
-from flask_mail import Message
-
+from lib_db.select import select_query
+from utils.mail_utils import send_email
+from profile.exceptions import NotFoundError
+from profile.full_profile_entity import FullProfile
+from profile.profile_entity import Profile
+from profile.short_profile_entity import ShortProfile
 
 TABLE_NAME = 'profile'
 

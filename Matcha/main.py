@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 from flask_mail import Mail
+from lib_db.db import init_db
 
 load_dotenv()  
 app = Flask(__name__, instance_relative_config=True)
@@ -21,10 +22,12 @@ app.config.from_mapping(
     MAIL_USE_SSL=True
 )
     
-from . import db
+from lib_db import db
 db.init_app(app)
+with app.app_context():
+    db.init_db()
 
 mail = Mail(app)
 
-from Matcha.profile import bp as profile_bp
+from profile import bp as profile_bp
 app.register_blueprint(profile_bp)

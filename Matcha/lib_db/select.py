@@ -1,4 +1,4 @@
-from Matcha.db import get_db
+from lib_db.db import get_db
 
 def select_query(table_name, fields_needed, query_dict: dict):
     query = "SELECT " + fields_needed + " FROM " + table_name + " WHERE "

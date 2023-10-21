@@ -20,16 +20,29 @@ def close_db(e=None):
     if db is not None:
         db.close()
 
-def init_db():
-    db = get_db()
-
+def create_table(db):
     schema_sql = open(os.path.abspath(os.path.dirname(__file__) + '/schema.sql'), "r")
+    data_sql = open(os.path.abspath(os.path.dirname(__file__) + '/data.sql'), "r")
     try:
         with db.cursor() as cur:
             cur.execute(schema_sql.read())
+            cur.execute(data_sql.read())
             db.commit()
     finally:
         schema_sql.close()
+        data_sql.close()
+
+def init_db():
+    db = get_db()
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('profile',))
+            if not cur.fetchone()[0]:
+                create_table(db)
+    except psycopg2.Error as e:
+        print(e)
+        raise e
 
 def init_app(app):
     app.teardown_appcontext(close_db)

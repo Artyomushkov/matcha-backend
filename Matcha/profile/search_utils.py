@@ -1,7 +1,7 @@
 from flask import request
 
-from Matcha.lib_db.select import select_query
-from Matcha.profile.exceptions import NotFoundError
+from lib_db.select import select_query
+from profile.exceptions import NotFoundError
 
 def is_get_params_valid_search(request: request):
   if request.args.get('id') == None or \

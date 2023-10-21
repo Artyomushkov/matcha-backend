@@ -1,4 +1,4 @@
-from Matcha.db import get_db
+from lib_db.db import get_db
 
 
 def update_query(table_name, set_dict: dict, conditions_dict: dict):

@@ -1,8 +1,6 @@
 from flask import current_app
-from flask_mail import Message, Mail
-from Matcha import mail
-
-"""mail = Mail()"""
+from flask_mail import Message
+from main import mail
 
 def send_email(to, subject, template):
   msg = Message(

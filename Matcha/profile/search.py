@@ -1,9 +1,9 @@
 from flask import jsonify, request
-from Matcha.lib_db.select import select_for_search
-from Matcha.profile import bp
-from Matcha.profile.exceptions import NotFoundError
-from Matcha.profile.search_utils import get_user_sex_prefernces, is_get_params_valid_search, parse_data_to_frontend
-from Matcha.utils.utils import is_valid_uuid
+from lib_db.select import select_for_search
+from profile import bp
+from profile.exceptions import NotFoundError
+from profile.search_utils import get_user_sex_prefernces, is_get_params_valid_search, parse_data_to_frontend
+from utils.utils import is_valid_uuid
 
 @bp.route('/search', methods=['GET'])
 def search():

@@ -1,4 +1,4 @@
-from Matcha.db import get_db
+from lib_db.db import get_db
 
 
 def insert_query(table_name, query_dict: dict):
