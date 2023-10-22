@@ -448,3 +448,116 @@ def get_liked_by_me():
         except Exception as err:
             return jsonify({"error": str(err)}), 500
     return jsonify(profileList), 200
+
+@bp.route('/wasLikedBy', methods=['GET'])
+def was_liked_by():
+    id = request.args.get('id')
+    if id == None:
+        return jsonify({"error": "There is no id provided"}), 400
+    if not is_valid_uuid(id):
+        return jsonify({"error": "Id is invalid"}), 400
+    fields_needed = "likedMe"
+    condition_args = dict()
+    condition_args['id'] = id
+    try:
+        likedMe = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    if not likedMe:
+        return jsonify({"error": "There is no user with such id"}), 400
+    profileList = []
+    for liked_id in likedMe[0][0]:
+        try:
+            profileList.append(find_profile_by_id(liked_id, ProfileType.SHORT).__dict__)
+        except NotFoundError as err:
+            return jsonify({"error": str(err)}), 400
+        except Exception as err:
+            return jsonify({"error": str(err)}), 500
+    return jsonify(profileList), 200
+
+@bp.route('/blacklistAdd', methods=['PUT'])
+def blacklist_add():
+    if not check_post_fields(request.json, {'id', 'blackedId'}):
+        return jsonify({"error": "Not all necessary fields are in the request"}), 400
+    if not is_valid_uuid(request.json['id']):
+        return jsonify({"error": "Id is invalid"}), 400
+    if not is_valid_uuid(request.json['blackedId']):
+        return jsonify({"error": "BlackedId is invalid"}), 400
+    if request.json['id'] == request.json['blackedId']:
+        return jsonify({"error": "You can't add yourself to blacklist"}), 400
+    try:
+        blackedId_check = find_profile_by_id(request.json['blackedId'], ProfileType.SHORT)
+    except NotFoundError as err:
+        return "There is no user with blackedId", 400
+    except Exception as err:
+        return "Database error", 500
+    fields_needed = "blacklist"
+    condition_args = dict()
+    condition_args['id'] = request.json['id']
+    try:
+        blacklist = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    if not blacklist:
+        return jsonify({"error": "There is no user with id"}), 400
+    if request.json['blackedId'] in blacklist[0][0]:
+        return jsonify({"error": "The user is already in blacklist"}), 400
+    blacklist[0][0].append(request.json['blackedId'])
+    try:
+        update_query(TABLE_NAME, {'blacklist': blacklist[0][0]}, {'id': request.json['id']})
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    return jsonify({'id': request.json['id']}), 200
+
+@bp.route('/isInBlacklist', methods=['GET'])
+def is_in_blacklist():
+    id = request.args.get('id')
+    blackedId = request.args.get('blackedId')
+    if id == None:
+        return jsonify({"error": "There is no id provided"}), 400
+    if blackedId == None:
+        return jsonify({"error": "There is no blackedId provided"}), 400
+    if not is_valid_uuid(id):
+        return jsonify({"error": "Id is invalid"}), 400
+    if not is_valid_uuid(blackedId):
+        return jsonify({"error": "BlackedId is invalid"}), 400
+    fields_needed = "blacklist"
+    condition_args = dict()
+    condition_args['id'] = id
+    try:
+        blacklist = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    if not blacklist:
+        return jsonify({"error": "There is no user with id"}), 400
+    if blackedId in blacklist[0][0]:
+        return jsonify({"black": True}), 200
+    return jsonify({"black": False}), 200
+
+@bp.route('/deleteFromBlacklist', methods=['PUT'])
+def delete_from_blacklist():
+    if not check_post_fields(request.json, {'id', 'blackedId'}):
+        return jsonify({"error": "Not all necessary fields are in the request"}), 400
+    if not is_valid_uuid(request.json['id']):
+        return jsonify({"error": "Id is invalid"}), 400
+    if not is_valid_uuid(request.json['blackedId']):
+        return jsonify({"error": "BlackedId is invalid"}), 400
+    if request.json['id'] == request.json['blackedId']:
+        return jsonify({"error": "You can't delete yourself from blacklist"}), 400
+    fields_needed = "blacklist"
+    condition_args = dict()
+    condition_args['id'] = request.json['id']
+    try:
+        blacklist = select_query(TABLE_NAME, fields_needed, condition_args)
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    if not blacklist:
+        return jsonify({"error": "There is no user with id"}), 400
+    if request.json['blackedId'] not in blacklist[0][0]:
+        return jsonify({"error": "The user is not in blacklist"}), 400
+    blacklist[0][0].remove(request.json['blackedId'])
+    try:
+        update_query(TABLE_NAME, {'blacklist': blacklist[0][0]}, {'id': request.json['id']})
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    return jsonify({'id': request.json['id']}), 200
