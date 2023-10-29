@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS profile (
     sexPref VARCHAR(10),
     biography VARCHAR(300),
     tagList TEXT[],
-    mainImage VARCHAR(50),
+    mainImage VARCHAR(150),
     pictures TEXT[],
     GPSlat DOUBLE PRECISION,
     GPSlon DOUBLE PRECISION,
