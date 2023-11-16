@@ -1,0 +1,5 @@
+db.env
+Matcha/.env
+docker-compose.yml
+.venv
+__pycache__/
