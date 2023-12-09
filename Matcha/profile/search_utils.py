@@ -100,4 +100,19 @@ def parse_data_to_frontend(data):
       'mainImage': user[7],
       'sexPref': user[8],
     })
-  return res  
+  return res
+
+def create_order_condition(order):
+  if order == None:
+    return ""
+  if order == 'most_young':
+    return " ORDER BY dateOfBirth DESC"
+  elif order == 'least_young':
+    return " ORDER BY dateOfBirth ASC"
+  elif order == 'most_famed':
+    return " ORDER BY fameRating DESC"
+  elif order == 'more_interests':
+    return " ORDER BY array_inter_length() DESC"
+  else:
+    raise Exception('Invalid order')
+  

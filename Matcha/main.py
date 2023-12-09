@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_mail import Mail
 from lib_db.db import init_db
+from flask_cors import CORS
 
 load_dotenv()  
 app = Flask(__name__, instance_relative_config=True)
@@ -21,6 +22,7 @@ app.config.from_mapping(
     MAIL_USE_TLS=False,
     MAIL_USE_SSL=True
 )
+CORS(app)
     
 from lib_db import db
 db.init_app(app)

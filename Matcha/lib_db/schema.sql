@@ -24,3 +24,14 @@ CREATE TABLE IF NOT EXISTS profile (
     blacklist TEXT[],
     fameRating DOUBLE PRECISION
 );
+
+CREATE FUNCTION array_inter_length(anyarray, anyarray)
+  RETURNS integer
+  language sql
+as $FUNCTION$
+    SELECT (array_length(SELECT ARRAY(
+        SELECT UNNEST($1)
+        INTERSECT
+        SELECT UNNEST($2)
+    ), 1));
+$FUNCTION$;

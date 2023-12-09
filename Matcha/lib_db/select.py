@@ -13,7 +13,7 @@ def select_query(table_name, fields_needed, query_dict: dict):
         res = cur.fetchall()
     return res
 
-def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags):
+def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags, page_num, order_condition):
     fields_needed = "id, firstname, dateOfBirth, gpslat, gpslon, gender, tagList, mainImage, sexPref"
     query = "SELECT " + fields_needed + " FROM profile WHERE "
     conditions = "id != %s AND ("
@@ -27,14 +27,15 @@ def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags):
     conditions += " AND gpslon BETWEEN %s AND %s"
     if tags != None:
         conditions += " AND %s = ANY(tagList)" * len(tags)
+    conditions += order_condition
+    conditions += " LIMIT 10 OFFSET %s"
     query += conditions + ';'
+    print(query)
     db = get_db()
     with db.cursor() as cur:
         data = (id, ) + tuple(sex_info["gender"]) + tuple(sex_info["sexPref"]) + \
         (age_range[0], age_range[1], fame_range[0], fame_range[1], geo_range[0], geo_range[1],
-         geo_range[2], geo_range[3]) + tuple(tags if tags != None else [])
-        #data = (id, ) + tuple(sex_info["gender"]) + tuple(sex_info["sexPref"]) + \
-        #(age_range[0], age_range[1], fame_range[0], fame_range[1])
+         geo_range[2], geo_range[3]) + tuple(tags if tags != None else []) + ((int(page_num) - 1) * 10,)
         cur.execute(query, data)
         res = cur.fetchall()
     return res
