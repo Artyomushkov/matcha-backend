@@ -112,7 +112,19 @@ def create_order_condition(order):
   elif order == 'most_famed':
     return " ORDER BY fameRating DESC"
   elif order == 'more_interests':
-    return " ORDER BY array_inter_length() DESC"
+    return " ORDER BY array_intersection_count(tagList, %s) DESC"
   else:
     raise Exception('Invalid order')
+  
+def find_order_data(order, id):
+  if order == None:
+    return None
+  if order == 'more_interests':
+    fields_needed = "tagList"
+    condition_args = {'id': id}
+    info = select_query('profile', fields_needed, condition_args)
+    if not info:
+      raise NotFoundError('User not found')
+    return info[0][0]
+  return None
   

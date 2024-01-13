@@ -33,3 +33,6 @@ mail = Mail(app)
 
 from profile import bp as profile_bp
 app.register_blueprint(profile_bp)
+
+from tags import bp as tags_bp
+app.register_blueprint(tags_bp)

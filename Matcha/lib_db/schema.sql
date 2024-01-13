@@ -25,13 +25,24 @@ CREATE TABLE IF NOT EXISTS profile (
     fameRating DOUBLE PRECISION
 );
 
-CREATE FUNCTION array_inter_length(anyarray, anyarray)
-  RETURNS integer
-  language sql
-as $FUNCTION$
-    SELECT (array_length(SELECT ARRAY(
-        SELECT UNNEST($1)
-        INTERSECT
-        SELECT UNNEST($2)
-    ), 1));
-$FUNCTION$;
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY NOT NULL,
+    tag VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION array_intersection_count(arr1 TEXT[], arr2 TEXT[])
+RETURNS INTEGER AS $$
+DECLARE
+    intersection_count INTEGER := 0;
+    element TEXT;
+BEGIN
+    FOREACH element IN ARRAY arr1
+    LOOP
+        IF element = ANY(arr2) THEN
+            intersection_count := intersection_count + 1;
+        END IF;
+    END LOOP;
+
+    RETURN intersection_count;
+END;
+$$ LANGUAGE plpgsql;
