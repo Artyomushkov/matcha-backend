@@ -153,6 +153,7 @@ def edit():
     try:
         update_query(TABLE_NAME, request.json, condition_args)
     except Exception as err:
+        print(err)
         return jsonify({"error": "Database query failed"}), 500
     fullProfile = find_profile_by_id(condition_args['id'], ProfileType.FULL)
     return jsonify(fullProfile.__dict__), 201
