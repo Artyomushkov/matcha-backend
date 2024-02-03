@@ -26,8 +26,8 @@ CORS(app)
     
 from lib_db import db
 db.init_app(app)
-with app.app_context():
-    db.init_db()
+#with app.app_context():
+#    db.init_db()
 
 mail = Mail(app)
 
