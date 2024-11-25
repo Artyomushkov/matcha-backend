@@ -5,7 +5,7 @@ services:
     container_name: postgres
     image: postgres:15-alpine3.18
     volumes:
-      - /Users/aushkov/Applications/matcha_volume:/var/lib/postgresql/data
+      - ../matcha_volume:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     env_file:
@@ -22,12 +22,12 @@ services:
     env_file:
       - db.env
     
-  matcha:
-    container_name: matcha
-    build: .
-    restart: always
-    ports:
-      - '8080:8080'
-    depends_on:
-      - postgres
+  #matcha:
+    #container_name: matcha
+    #build: .
+    #restart: always
+    #ports:
+    #  - '8080:8080'
+    #depends_on:
+    #  - postgres
     
