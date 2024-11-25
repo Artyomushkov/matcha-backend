@@ -1,29 +1,13 @@
 import datetime
 import time
-from flask import request
 
 from lib_db.select import select_query
-from profile.exceptions import NotFoundError
+from profile.exceptions import NotFoundError, BadRequest
 import geopy.distance
-
-def is_get_params_valid_search(request: request):
-  if request.args.get('id') == None or \
-    request.args.get('ageFrom') == None or \
-    request.args.get('ageTo') == None or \
-    request.args.get('fameFrom') == None or \
-    request.args.get('fameTo') == None or \
-    request.args.get('lat') == None or \
-    request.args.get('lon') == None or \
-    request.args.get('locationRadius') == None or \
-    request.args.get('tags') == None or \
-    request.args.get('order') == None:
-      return False
-  return True
 
 def get_user_sex_prefernces(id):
   fields_needed = "gender, sexPref"
-  condition_args = {'id': id}
-  info = select_query('profile', fields_needed, condition_args)
+  info = select_query('profile', fields_needed, {'id': id})
   if not info:
      raise NotFoundError('User not found')
   info = {
@@ -50,12 +34,14 @@ def get_age_range(age_from, age_to):
     age_from = 18
   if age_to == None:
     age_to = 100
-  year_from = 2023 - int(age_to)
-  year_to = 2023 - int(age_from)
-  if year_from < 1900 or year_to < 1900 or year_from > 2023 or year_to > 2023 or year_from > year_to:
-    raise Exception('Invalid age range')
-  time_from = time.mktime(datetime.datetime(year=year_from, month=1, day=1).timetuple())
-  time_to = time.mktime(datetime.datetime(year=year_to, month=1, day=1).timetuple())
+  age_from = int(age_from)
+  age_to = int(age_to)
+  if age_from < 18 or age_to < 18 or age_from > 100 or age_to > 100 or age_from > age_to:
+    raise BadRequest('Invalid age range')
+  year_from = 2024 - age_to
+  year_to = 2024 - age_from
+  time_from = time.mktime(datetime.datetime(year=year_from, month=1, day=1).timetuple()) * 100
+  time_to = time.mktime(datetime.datetime(year=year_to, month=1, day=1).timetuple()) * 100
   return time_from, time_to
 
 def get_fame_range(fame_from, fame_to):
@@ -66,21 +52,22 @@ def get_fame_range(fame_from, fame_to):
   fame_from = float(fame_from)
   fame_to = float(fame_to)
   if fame_from < 0 or fame_to < 0 or fame_from > 5 or fame_to > 5 or fame_from > fame_to:
-    raise Exception('Invalid fame range')
+    raise BadRequest('Invalid fame range')
   return fame_from, fame_to
 
 def get_geo_range(location, radius):
   if location == None:
-    raise Exception('Invalid geo data')
+    raise BadRequest('Invalid geo data')
   if location.get('lat') == None or location.get('lon') == None:
-    raise Exception('Invalid geo data')
+    raise BadRequest('Invalid geo data')
   if radius == None:
     return -90, 90, -180, 180
   lat = float(location.get('lat'))
   lon = float(location.get('lon'))
+  print(lat, lon)
   radius = float(radius)
   if lat < -90 or lat > 90 or lon < -180 or lon > 180 or radius < 0:
-    raise Exception('Invalid geo data')
+    raise BadRequest('Invalid geo data')
   northPoint = geopy.distance.distance(kilometers=radius).destination(geopy.Point(lat, lon), 0).latitude
   southPoint = geopy.distance.distance(kilometers=radius).destination(geopy.Point(lat, lon), 180).latitude
   westPoint = geopy.distance.distance(kilometers=radius).destination(geopy.Point(lat, lon), 270).longitude
@@ -113,18 +100,21 @@ def create_order_condition(order):
     return " ORDER BY fameRating DESC"
   elif order == 'more_interests':
     return " ORDER BY array_intersection_count(tagList, %s) DESC"
+  elif order == 'most_close':
+    return " ORDER BY calculate_distance(GPSlat, GPSlon, %s, %s) ASC"
   else:
-    raise Exception('Invalid order')
+    raise BadRequest('Invalid order')
   
-def find_order_data(order, id):
+def find_order_data(order, location, id):
   if order == None:
-    return None
+    return ()
   if order == 'more_interests':
     fields_needed = "tagList"
-    condition_args = {'id': id}
-    info = select_query('profile', fields_needed, condition_args)
+    info = select_query('profile', fields_needed, {'id': id})
     if not info:
       raise NotFoundError('User not found')
-    return info[0][0]
-  return None
+    return info[0][0],
+  if order == 'most_close':
+    return location.get('lat'), location.get('lon')
+  return ()
   

@@ -1,6 +1,5 @@
 from lib_db.db import get_db
 
-
 def insert_query(table_name, query_dict: dict):
     columns = "("
     for key in query_dict.keys():
@@ -12,6 +11,8 @@ def insert_query(table_name, query_dict: dict):
         " VALUES " + operators + ";"
     db = get_db()
     with db.cursor() as cur:
-        cur.execute(query, tuple(query_dict.values()))
-        db.commit()
+        try:
+            cur.execute(query, tuple(query_dict.values()))
+        finally:
+            db.commit()
      

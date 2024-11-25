@@ -1,4 +1,4 @@
 from flask import Blueprint
 
-bp = Blueprint('tags', __name__, url_prefix='/tags')
+bp = Blueprint('tag', __name__, url_prefix='/tag')
 from tags import routes
