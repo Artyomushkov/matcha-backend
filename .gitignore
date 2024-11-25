@@ -4,3 +4,7 @@ docker-compose.yml
 .venv
 __pycache__/
 git_token
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
