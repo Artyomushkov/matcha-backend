@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask-SocketIO Chat</title>
+    <style>
+        #chat {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 300px;
+            height: 400px;
+            overflow-y: scroll;
+        }
+        #message {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flask-SocketIO Chat</h1>
+    <div id="chat"></div>
+    <input type="text" id="message" placeholder="Enter your message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on('connect', function() {
+            var data = {id: '0186ea4e-ba15-4ec5-aa49-9fe3a5ed5534'};
+            socket.emit('register', data);
+        });
+
+        socket.on('error', function(data) {
+            console.log(data);
+        });
+
+        const id = "0186ea4e-ba15-4ec5-aa49-9fe3a5ed5534";
+        const room = "dd7a32c7-ac44-4363-bd21-e4c782bc69b5";
+
+        socket.emit('join', {id: id, room: room});
+
+        socket.on('message', function(msg) {
+            const chat = document.getElementById('chat');
+            const message = document.createElement('p');
+            message.textContent = msg;
+            chat.appendChild(message);
+        });
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value;
+            socket.emit('message', {room: room, message: message, authorId: id});
+            messageInput.value = '';
+        }
+
+        window.onbeforeunload = function() {
+            socket.emit('leave', {username: username, room: room});
+        };
+    </script>
+</body>
+</html>

@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, render_template
 from flask_mail import Mail
+from flask_socketio import SocketIO, join_room, leave_room, send
 from lib_db.db import init_db
 from flask_cors import CORS
 
@@ -23,11 +24,12 @@ app.config.from_mapping(
     MAIL_USE_SSL=True
 )
 CORS(app)
+socketio = SocketIO(app)
+
+user_rooms = {}
     
 from lib_db import db
 db.init_app(app)
-#with app.app_context():
-#    db.init_db()
 
 mail = Mail(app)
 
@@ -36,3 +38,24 @@ app.register_blueprint(profile_bp)
 
 from tags import bp as tags_bp
 app.register_blueprint(tags_bp)
+
+from chat import bp as chat_bp
+app.register_blueprint(chat_bp)
+
+from notification import bp as notification_bp
+app.register_blueprint(notification_bp)
+
+@app.route("/")
+def index():
+    return render_template("socket_test.html")
+
+@app.route("/chat_test")
+def chat_test():
+    return render_template('copilot_chat.html')
+
+@app.route("/chat_test2")
+def chat_test2():
+    return render_template('copilot_chat2.html')
+
+if __name__ == '__main__':
+    socketio.run(app)

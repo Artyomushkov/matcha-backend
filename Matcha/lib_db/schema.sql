@@ -26,8 +26,31 @@ CREATE TABLE IF NOT EXISTS profile (
 );
 
 CREATE TABLE IF NOT EXISTS tags (
-    id SERIAL PRIMARY KEY NOT NULL,
+    id UUID PRIMARY KEY NOT NULL,
     tag VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat (
+    id UUID PRIMARY KEY NOT NULL,
+    userOneId UUID NOT NULL,
+    userTwoId UUID NOT NULL,
+    dateCreated BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS message (
+    id UUID PRIMARY KEY NOT NULL,
+    chatId UUID NOT NULL,
+    authorId UUID NOT NULL,
+    content VARCHAR(300),
+    dateCreated BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS notification (
+    id UUID PRIMARY KEY NOT NULL,
+    recipientId UUID NOT NULL,
+    actorId UUID NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    dateCreated BIGINT
 );
 
 CREATE OR REPLACE FUNCTION array_intersection_count(arr1 TEXT[], arr2 TEXT[])
@@ -46,3 +69,25 @@ BEGIN
     RETURN intersection_count;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION calculate_distance(lat1 FLOAT, lon1 FLOAT, lat2 FLOAT, lon2 FLOAT)
+RETURNS FLOAT AS $$
+DECLARE
+    dLat FLOAT;
+    dLon FLOAT;
+    a FLOAT;
+    c FLOAT;
+    distance FLOAT;
+BEGIN
+    dLat := RADIANS(lat2 - lat1);
+    dLon := RADIANS(lon2 - lon1);
+    lat1 := RADIANS(lat1);
+    lat2 := RADIANS(lat2);
+
+    a := SIN(dLat / 2) * SIN(dLat / 2) + SIN(dLon / 2) * SIN(dLon / 2) * COS(lat1) * COS(lat2);
+    c := 2 * ATAN2(SQRT(a), SQRT(1 - a));
+    distance := 6371 * c; -- Radius of the Earth in kilometers (change if using miles)
+
+    RETURN distance;
+END;
+$$ LANGUAGE PLPGSQL;
