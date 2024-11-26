@@ -1,0 +1,29 @@
+name: Update code on VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update_code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.gcp_credentials }}'
+
+      - name: SSH to VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            cd /home/aushkov/matcha
+            docker-compose down
+            docker-compose up -d
