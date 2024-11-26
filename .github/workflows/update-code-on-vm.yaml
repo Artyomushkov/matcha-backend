@@ -9,21 +9,18 @@ jobs:
   update_code:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: '${{ secrets.gcp_credentials }}'
 
-      - name: SSH to VM
-        uses: appleboy/ssh-action@master
+      - name: 'ssh-launch-script'
+        uses: 'google-github-actions/ssh-compute@v1'
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
+          instance_name: 'matcha-instance'
+          zone: 'us-west1-a'
+          ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
           script: |
-            cd /home/aushkov/matcha
-            docker-compose down
-            docker-compose up -d
+            cd /home/jamatchaserver/matcha-backend
+            git pull
+            docker compose up -d --build --force-recreate matcha
