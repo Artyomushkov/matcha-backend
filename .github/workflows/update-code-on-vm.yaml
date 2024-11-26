@@ -20,17 +20,7 @@ jobs:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-          script: |
-            pwd
-            echo "Listing home directory contents:"
-            ls -la /home/jamatchaserver
-            echo "Checking if matcha-backend directory exists:"
-            if [ -d "/home/jamatchaserver/matcha-backend" ]; then
-              echo "Directory exists."
-            else
-              echo "Directory does not exist."
-              exit 1
-            fi
+          command: |
             cd /home/jamatchaserver/matcha-backend
             git pull
             docker compose up -d --build --force-recreate matcha
