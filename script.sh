@@ -1,3 +1,1 @@
-echo -n 1
-echo -n 2
-echo 3
+cd /home/jamatchaserver/matcha-backend
