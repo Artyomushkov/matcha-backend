@@ -1,4 +1,3 @@
 flask --app Matcha init-db
 flask --app main run
 psql -h 127.0.0.1 -U romantic -d matcha -a -f data.sql
-#docker compose up -d --build --force-recreate matcha

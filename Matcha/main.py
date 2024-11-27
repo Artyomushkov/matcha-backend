@@ -57,9 +57,9 @@ def chat_test():
 def chat_test2():
     return render_template('copilot_chat2.html')
 
-@app.route("/test2")
+@app.route("/test3")
 def test():
-    return "hooray2"
+    return "hooray3"
 
 if __name__ == '__main__':
     socketio.run(app)
