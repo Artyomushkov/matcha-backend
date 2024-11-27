@@ -1,2 +1,1 @@
-cd /home/jamatchaserver/matcha-backend
-git pull
+cd /home/jamatchaserver/matcha-backend && git pull
