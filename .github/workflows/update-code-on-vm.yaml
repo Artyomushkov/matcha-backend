@@ -24,3 +24,4 @@ jobs:
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
           script: /home/jamatchaserver/script.sh
+          
