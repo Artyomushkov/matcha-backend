@@ -23,4 +23,4 @@ jobs:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-          script: ./matcha-backend/script.sh
+          script: /home/jamatchaserver/script.sh
