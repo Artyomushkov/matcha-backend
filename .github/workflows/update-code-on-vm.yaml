@@ -20,4 +20,4 @@ jobs:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-          command: echo Hello world
+          command: pwd
