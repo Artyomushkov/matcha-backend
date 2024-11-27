@@ -23,14 +23,5 @@ jobs:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-          script: |
-            echo "Listing home directory contents:"
-            ls -la /home/jamatchaserver
-            echo "Checking if script.sh exists and is executable:"
-            if [ -x "/home/jamatchaserver/script.sh" ]; then
-              echo "script.sh exists and is executable."
-            else
-              echo "script.sh does not exist or is not executable."
-              exit 1
-            fi
+          script: '${{ github.workspace }}/script.sh'
           
