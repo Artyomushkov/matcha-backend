@@ -18,10 +18,17 @@ jobs:
           credentials_json: '${{ secrets.gcp_credentials }}'
 
       - name: 'ssh-launch-script'
+        id: ssh
         uses: 'google-github-actions/ssh-compute@v1'
         with:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
           script: '${{ github.workspace }}/script.sh'
+
+      - name: 'Show Output'
+        run: |-
+          echo '${{ steps.ssh.outputs.stdout }}'
+          echo '${{ steps.ssh.outputs.stderr }}'
+      
           
