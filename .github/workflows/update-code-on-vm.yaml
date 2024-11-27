@@ -20,4 +20,4 @@ jobs:
           instance_name: 'matcha-instance'
           zone: 'us-west1-a'
           ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-          command: cd /home/jamatchaserver/matcha-backend && git pull && docker-compose up -d --build --force-recreate matcha
+          script: /home/jamatchaserver/script.sh
