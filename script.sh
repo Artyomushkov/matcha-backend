@@ -1,3 +1,4 @@
 cd /home/jamatchaserver/matcha-backend
 ls
-git pull origin main
+git remote -v
+ping -c 4 github.com
