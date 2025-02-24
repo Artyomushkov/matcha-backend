@@ -34,9 +34,10 @@ class Profile:
     self.location = { 'lat': data[10], 'lon': data[11] }
     self.isOnline = data[12]
     self.lastSeen = data[13]
-    self.fameRating = calculate_fame_rating(data[15], data[16])
-    self.viewedMe = data[15]
-    self.likedMe = data[16]
+    self.fameRating = calculate_fame_rating(data[14], data[15])
+    self.viewedMe = data[14]
+    self.likedMe = data[15]
+    self.isFake = data[16]
 
 class FullProfile:
   def __init__(self, data):
@@ -61,5 +62,4 @@ class FullProfile:
     self.liked = data[19]
     self.viewed = data[20]
     self.fameRating = calculate_fame_rating(data[17], data[18])
-
-
+    self.isFake = data[21]

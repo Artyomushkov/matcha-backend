@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS profile (
     liked TEXT[],
     viewed TEXT[],
     blacklist TEXT[],
-    fameRating DOUBLE PRECISION
+    isFake BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS tags (

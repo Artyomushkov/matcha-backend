@@ -7,8 +7,11 @@ from main import user_rooms
 from main import socketio
 from lib_db.insert import insert_query
 from lib_db.select import select_query
+from profile.profile_common import is_in_blacklist
 
 def like_notify(user_id, guest_id, if_like):
+  if is_in_blacklist(user_id, guest_id):
+    return
   try:
     actor = find_profile_by_id(guest_id, ProfileType.SHORT)
   except Exception as err:
@@ -40,6 +43,8 @@ def like_notify(user_id, guest_id, if_like):
     return
   
 def view_notify(user_id, guest_id):
+  if is_in_blacklist(user_id, guest_id):
+    return
   try:
     actor = find_profile_by_id(guest_id, ProfileType.SHORT)
   except Exception as err:

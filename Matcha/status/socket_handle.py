@@ -11,11 +11,11 @@ def change_status_to_online(data):
         return
     if not data['id']:
         return
+    user_rooms[data['id']] = request.sid
     try:
         update_query('profile', {'isOnline': True}, {'id': data['id']})
-        user_rooms[data['id']] = request.sid
     except Exception as e:
-        emit('error', {'msg': str(e)}, room=user_rooms[data['id']]) 
+        emit('error', {'msg': str(e)}, room=request.sid) 
 
 @socketio.on('disconnect')
 def disconnect():

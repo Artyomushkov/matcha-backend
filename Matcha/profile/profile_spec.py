@@ -47,12 +47,18 @@ def register_user(id, request_data):
 def add_views_to_db(id, guest_id, profile):
   fields_needed = "viewed"
   viewed = select_query(TABLE_NAME, fields_needed, {'id': guest_id})
+  print(viewed)
+  print('1')
   if not viewed:
     raise NotFoundError("There is no user with such id")
   if id not in viewed[0][0]:
+    print('2')
     update_query(TABLE_NAME, {'viewed': viewed[0][0] + [id]}, {'id': guest_id})
+    print('21')
   if guest_id not in profile.viewedMe:
+    print('3')
     update_query(TABLE_NAME, {'viewedMe': profile.viewedMe + [guest_id]}, {'id': id})
+    print('31')
 
 # Need to add a check for dateofbirth limits
 def check_edit_data(id, request_data):
