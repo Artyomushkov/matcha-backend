@@ -25,10 +25,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
-        const socket = io();
+        var socket = io();
+
+        const id = '0186ea4e-ba15-4ec5-aa49-9fe3a5ed5534'
+        const recipient = "0190ec5e-844f-4b97-99cc-439d3700c82b"
 
         socket.on('connect', function() {
-            var data = {id: '0186ea4e-ba15-4ec5-aa49-9fe3a5ed5534'};
+            var data = {id: id};
             socket.emit('register', data);
         });
 
@@ -36,8 +39,7 @@
             console.log(data);
         });
 
-        const id = "0186ea4e-ba15-4ec5-aa49-9fe3a5ed5534";
-        const room = "dd7a32c7-ac44-4363-bd21-e4c782bc69b5";
+        const room = "bc879031-9e80-4a0d-9d5b-155005ede43c";
 
         socket.emit('join', {id: id, room: room});
 
@@ -48,10 +50,14 @@
             chat.appendChild(message);
         });
 
+        socket.on('notification', function(data) {
+            console.log(data);
+        });
+
         function sendMessage() {
             const messageInput = document.getElementById('message');
             const message = messageInput.value;
-            socket.emit('message', {room: room, message: message, authorId: id});
+            socket.emit('message', {room: room, message: message, authorId: id, recipientId: recipient});
             messageInput.value = '';
         }
 

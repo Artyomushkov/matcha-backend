@@ -16,7 +16,7 @@ def select_query(table_name, fields_needed, query_dict: dict):
         res = cur.fetchall()
     return res
 
-def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags, page_num, order_condition, order_data):
+def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags, page_num, order_condition, order_data, blacklist):
     fields_needed = "id, firstname, dateOfBirth, gpslat, gpslon, gender, tagList, mainImage, sexPref"
     query = "SELECT " + fields_needed + " FROM profile WHERE "
     conditions = "id != %s AND ("
@@ -25,9 +25,16 @@ def select_for_search(id, sex_info, age_range, fame_range, geo_range, tags, page
     conditions += "sexPref = %s OR " * len(sex_info["sexPref"])
     conditions = conditions[0:len(conditions) - 4] + ")"
     conditions += " AND dateOfBirth BETWEEN %s AND %s"
-    conditions += " AND ROUND((array_length(likedMe, 1)::NUMERIC / NULLIF(array_length(viewedMe, 1), 0)::NUMERIC) * 5, 2) BETWEEN %s AND %s"
+    conditions += """ AND ROUND(COALESCE(array_length(likedMe, 1), 0)::NUMERIC /
+    (CASE 
+        WHEN COALESCE(array_length(viewedMe, 1), 0) = 0 THEN 1 
+        ELSE array_length(viewedMe, 1)::NUMERIC
+    END) * 5, 2) BETWEEN %s AND %s"""
     conditions += " AND gpslat BETWEEN %s AND %s"
     conditions += " AND gpslon BETWEEN %s AND %s"
+    if blacklist:
+        blacklist_str = ','.join(f"'{item}'" for item in blacklist)
+        conditions += f" AND id::TEXT <> ALL(ARRAY[{blacklist_str}])"
     if tags != None:
         conditions += " AND %s = ANY(tagList)" * len(tags)
     conditions += order_condition

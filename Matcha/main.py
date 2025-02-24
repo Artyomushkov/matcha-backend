@@ -45,6 +45,9 @@ app.register_blueprint(chat_bp)
 from notification import bp as notification_bp
 app.register_blueprint(notification_bp)
 
+from status import bp as status_bp
+app.register_blueprint(status_bp)
+
 @app.route("/")
 def index():
     return render_template("socket_test.html")
@@ -57,9 +60,9 @@ def chat_test():
 def chat_test2():
     return render_template('copilot_chat2.html')
 
-@app.route("/test3")
+@app.route("/test")
 def test():
-    return "hooray3"
+    return "hooray"
 
 if __name__ == '__main__':
     socketio.run(app)

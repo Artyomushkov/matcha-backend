@@ -6,6 +6,8 @@ from lib_db.insert import insert_query
 from main import socketio
 from lib_db.update import update_query
 from lib_db.select import select_query
+from profile.profile_entities import ProfileType
+from profile.profile_common import find_profile_by_id
 from main import user_rooms
 from flask import request
 
@@ -26,12 +28,13 @@ def on_leave(data):
 
 @socketio.on('message')
 def handle_message(data):
-    print("TEST")
-    print(user_rooms)
     try:
         chat = select_query('chat', 'id', {'id' : data['room']})
         if chat:
             send(data['message'], to=data['room'])
+            if data['recipientId'] in user_rooms:
+                actor = find_profile_by_id(data['authorId'], ProfileType.SHORT)
+                actor.id = str(actor.id)
         else:
             emit('error', {'msg': 'Room not found'}, to=request.sid)
     except Exception as err:

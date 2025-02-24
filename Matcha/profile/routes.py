@@ -19,6 +19,9 @@ from profile.profile_spec import confirm_email_send, register_user, add_views_to
 from profile.profile_entities import ShortProfile, ProfileType
 from profile.profile_common import find_profile_by_id
 from notification.sockets import view_notify
+from chat.utils import delete_chat_on_unlike
+from profile.profile_common import is_password_valid
+
 
 from utils.utils import is_valid_uuid, check_and_clean_fields
 
@@ -31,6 +34,9 @@ def create():
         return jsonify({"error": "Not all necessary fields are in the request"}), 400
     if not re.match(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$', request_data['email']):
         return jsonify({"error": "Wrong email format"}), 400
+    check_password = is_password_valid(request_data['password'])
+    if check_password:
+        return jsonify({"error": check_password}), 400
     psycopg2.extras.register_uuid()
     id = uuid.uuid4()
     try:
@@ -64,15 +70,20 @@ def get_profile_info(guest_id, id):
     except Exception as err:
         return jsonify({"error": "Database query failed"}), 500
     if not id == guest_id:
-        view_notify(id, guest_id)
+        try:
+            view_notify(id, guest_id)
+        except Exception as err:
+            pass
         try:
             add_views_to_db(id, guest_id, profile)
         except NotFoundError as err:
             return jsonify({"error": str(err)}), 400
         except Exception as err:
+            print(err)
             return jsonify({"error": "Database query failed"}), 500
         if guest_id not in profile.viewedMe:
             profile.viewedMe.append(guest_id)
+            profile.fameRating = round(len(profile.likedMe) / len(profile.viewedMe) * 5, 2)
     return jsonify(profile.__dict__), 200
 
 def edit_profile(id, request_data):
@@ -182,6 +193,9 @@ def update_password(id):
         return jsonify({"error": "Password should be a string"}), 400
     if not is_valid_uuid(id):
         return jsonify({"error": "Id is invalid"}), 400
+    check_password = is_password_valid(request.json['password'])
+    if check_password:
+        return jsonify({"error": check_password}), 400
     try:
         find_profile_by_id(id, ProfileType.SHORT)
     except NotFoundError as err:
@@ -283,6 +297,11 @@ def blacklist_route(id):
         if id in blacklist[0][0]:
             return jsonify({"error": "The user is already in blacklist"}), 400
         blacklist[0][0].append(id)
+        try:
+            like_unlike_route(id, {'user': user}, 'DELETE')
+            delete_chat_on_unlike(id, user)
+        except Exception as err:
+            return jsonify({"error": "Database query failed during blocking user"}), 500
     elif request.method == 'DELETE':
         if id not in blacklist[0][0]:
             return jsonify({"error": "The user is not in blacklist"}), 400
@@ -296,3 +315,34 @@ def blacklist_route(id):
     except Exception as err:
         return jsonify({"error": "Database query failed"}), 500
     return jsonify({'id': request_data['user']}), 200
+
+@bp.route('/test', methods=['GET'])
+def test():
+    return jsonify({"error": "Test"}), 200
+
+@bp.route('/<id>/fake', methods=['PUT', 'DELETE'])
+def fake_route(id):
+    if not is_valid_uuid(id):
+        return jsonify({"error": "Id is invalid"}), 400
+    request_data = check_and_clean_fields(request.json, {'user'})
+    if not request_data:    
+        return jsonify({"error": "Not all necessary fields are in the request"}), 400
+    if id == request_data['user']:
+        return jsonify({"error": "You can't mark yourself as fake"}), 400
+    if request.method == 'PUT':
+        return fake_action(id, True)
+    elif request.method == 'DELETE':
+        return fake_action(id, False)
+
+def fake_action(id, if_fake):
+    try:
+        find_profile_by_id(id, ProfileType.SHORT)
+    except NotFoundError as err:
+        return jsonify({"error": str(err)}), 400
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    try:
+        update_query(TABLE_NAME, {'isFake': if_fake}, {'id': id})
+    except Exception as err:
+        return jsonify({"error": "Database query failed"}), 500
+    return jsonify({'id': id}), 200

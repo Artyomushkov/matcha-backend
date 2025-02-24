@@ -22,4 +22,3 @@ def delete_chat_on_unlike(id, guest_id):
             return
     delete_query(table_name, {'id': chat[0][0]})
     delete_query("message", {'chatId': chat[0][0]})
-    

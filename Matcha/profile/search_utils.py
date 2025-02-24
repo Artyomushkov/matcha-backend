@@ -97,7 +97,11 @@ def create_order_condition(order):
   elif order == 'least_young':
     return " ORDER BY dateOfBirth ASC"
   elif order == 'most_famed':
-    return " ORDER BY fameRating DESC"
+    return """ ORDER BY ROUND(COALESCE(array_length(likedMe, 1), 0)::NUMERIC /
+    (CASE 
+        WHEN COALESCE(array_length(viewedMe, 1), 0) = 0 THEN 1 
+        ELSE array_length(viewedMe, 1)::NUMERIC
+    END) * 5, 2) DESC""" 
   elif order == 'more_interests':
     return " ORDER BY array_intersection_count(tagList, %s) DESC"
   elif order == 'most_close':
@@ -117,4 +121,9 @@ def find_order_data(order, location, id):
   if order == 'most_close':
     return location.get('lat'), location.get('lon')
   return ()
+
+def get_blacklist(id):
+  fields_needed = "blacklist"
+  info = select_query('profile', fields_needed, {'id': id})
+  return info[0][0]
   
