@@ -316,10 +316,6 @@ def blacklist_route(id):
         return jsonify({"error": "Database query failed"}), 500
     return jsonify({'id': request_data['user']}), 200
 
-@bp.route('/test', methods=['GET'])
-def test():
-    return jsonify({"error": "Test"}), 200
-
 @bp.route('/<id>/fake', methods=['PUT', 'DELETE'])
 def fake_route(id):
     if not is_valid_uuid(id):
