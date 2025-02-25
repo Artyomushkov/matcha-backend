@@ -345,4 +345,7 @@ def fake_action(id, if_fake):
 
 @bp.route('/test', methods=['GET'])
 def test_db():
-    return find_profile_by_id('00818140-f095-9ecc-11af-0e751809a8c0', ProfileType.FULL).__dict__, 200
+    try:
+        find_profile_by_id('00818140-f095-9ecc-11af-0e751809a8c0', ProfileType.FULL).__dict__, 200
+    except Exception as err:
+        return str(err), 500
