@@ -21,6 +21,14 @@ jobs:
         run: |-
           echo "Service account: $(echo '${{ secrets.gcp_credentials }}' | jq -r .client_email)"
           echo "Project ID:      $(echo '${{ secrets.gcp_credentials }}' | jq -r .project_id)"
+
+      - name: 'Show project owners'
+        run: |-
+          gcloud projects get-iam-policy psyched-magnet-411116 \
+            --flatten="bindings[].members" \
+            --filter="bindings.role:roles/owner" \
+            --format="value(bindings.members)" || true
+          gcloud beta billing projects describe psyched-magnet-411116 || true
       
       - name: 'ssh-launch-script'
         id: ssh
