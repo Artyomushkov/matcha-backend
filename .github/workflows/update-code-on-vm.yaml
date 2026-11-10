@@ -17,6 +17,11 @@ jobs:
         with:
           credentials_json: '${{ secrets.gcp_credentials }}'
 
+      - name: 'Identify GCP credentials'
+        run: |-
+          echo "Service account: $(echo '${{ secrets.gcp_credentials }}' | jq -r .client_email)"
+          echo "Project ID:      $(echo '${{ secrets.gcp_credentials }}' | jq -r .project_id)"
+      
       - name: 'ssh-launch-script'
         id: ssh
         uses: 'google-github-actions/ssh-compute@v1'
